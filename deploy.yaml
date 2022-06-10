@@ -1,0 +1,75 @@
+- hosts: localhost
+
+task:
+
+- name: create network
+  docker_network:
+    name: serv1
+          frontend
+          serv2
+
+- name: nginx proxy
+  docker_container:
+    name: 'nginx'
+    recreate: true
+    image: 'nginx:latest'
+    published_ports:
+      - "80:80"
+    volumes:
+      - "./app.conf:/etc/nginx/conf.d/app.conf"
+    networks:
+      - name: "frontend"
+
+- name: run serveur 1
+  docker_container:
+    name: 'serveur1'
+    recreate: true
+    image: 'apache:latest'
+    volumes:
+      - ./serveur1/html:/usr/local/apache2/htdocs
+    networks:
+      -name: "frontend"
+
+- name: run serveur 2
+  docker_container:
+    name: 'serveur2'
+    recreate: true
+    image: 'apache:latest'
+    volumes:
+      - ./serveur2/html:/usr/local/apache2/htdocs
+    networks:
+      -name: "frontend"
+
+- name: run php 1
+  docker_container:
+    name: 'php1'
+    recreate: true
+    image: 'php:latest'
+    volumes:
+      - ./serveur1/html:/usr/local/apache2/htdocs
+    networks:
+      -name: "serv1"
+
+- name: run php 2
+  docker_container:
+    name: 'php2'
+    recreate: true
+    image: 'php:latest'
+    volumes:
+      - ./serveur2/html:/usr/local/apache2/htdocs
+    networks:
+      -name: "serv2"
+
+- name: run BD
+  docker_container:
+    name: 'mysql'
+    image: mysql:latest
+    volumes: ./db:/var/lib/mysql
+    env:
+      MYSQL_ROOT_PASSWORD: "admin"
+      MYSQL_DATABASE: "db"
+      MYSQL_USER: "db_user"
+      MYSQL_PASSWORD: "admin"
+  networks:
+    - name: serv1
+    - name: serv2
